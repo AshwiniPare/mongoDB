@@ -22,6 +22,7 @@ class User {
     });
     let newQuantity = 1;
     const updatedCartItems = [...this.cart.items];
+   
 
     if (cartProductIndex >= 0) {
       newQuantity = this.cart.items[cartProductIndex].quantity + 1;
@@ -74,8 +75,39 @@ class User {
       .collection('users')
       .updateOne(
         { _id: new ObjectId(this._id) },
-        { $set: { cart: {items: updatedCartItems} } }
+        { $set: { cart: { items: updatedCartItems } } }
       );
+  }
+
+  addOrder() {
+    const db = getDb();
+    return this.getCart()
+      .then(products => {
+        const order = {
+          items: products,
+          user: {
+            _id: new ObjectId(this._id),
+            name: this.name
+          }
+        };
+        return db.collection('orders').insertOne(order);
+      })
+      .then(result => {
+        this.cart = { items: [] };
+        return db
+          .collection('users')
+          .updateOne(
+            { _id: new ObjectId(this._id) },
+            { $set: { cart: { items: [] } } }
+          );
+      });
+  }
+
+  getOrders() {
+    const db = getDb();
+    return db.collection('orders').find({
+      'user._id': new ObjectId(this._id)
+    }).toArray();
   }
 
   static findById(userId) {
